@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Starship Strike - Güçlenen Ateş Hattı</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --neon-green: #39ff14; 
+            --efe-color: #00f2ff; 
+            --gizem-color: #ff00ff;
+            --boss-blue: #0077ff;
+            --fire-gold: #ffcc00;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Montserrat', sans-serif; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #020205; touch-action: none; position: fixed; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #0d0d26 0%, #020205 100%); overflow: hidden; }
+
+        .ui-panel { position: absolute; top: 40px; width: calc(100% - 40px); left: 20px; display: flex; justify-content: space-between; z-index: 100; }
+        .stat-box { color: #fff; font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        #phase-indicator { margin-left: 8px; font-weight: 900; color: var(--neon-green); text-shadow: 0 0 10px currentColor; }
+        
+        /* OYUNCU GEMİSİ */
+        #player {
+            position: absolute; width: 85px; height: 85px;
+            background: url('https://i.ibb.co/Z5P8zhP/HE-F-G-r-nt-s.avif') no-repeat center;
+            background-size: contain; z-index: 50;
+            filter: drop-shadow(0 0 15px var(--neon-green));
+            transition: transform 0.1s ease-out;
+        }
+
+        /* DÜŞMANLAR */
+        .enemy { position: absolute; width: 45px; height: 45px; background: url('https://i.ibb.co/M570SNVj/HE-F-G-r-nt-s.avif') no-repeat center; background-size: contain; z-index: 30; transform: rotate(180deg); }
+        
+        .boss-container { position: absolute; z-index: 30; display: flex; flex-direction: column; align-items: center; }
+        .boss {
+            width: 120px; height: 120px;
+            background: url('https://i.ibb.co/M570SNVj/HE-F-G-r-nt-s.avif') no-repeat center;
+            background-size: contain; transform: rotate(180deg);
+            filter: hue-rotate(200deg) brightness(1.3) drop-shadow(0 0 40px var(--boss-blue));
+        }
+
+        .boss-hp-bar-bg { width: 160px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 10px; border: 1px solid var(--boss-blue); overflow: hidden; }
+        .boss-hp-bar-fill { width: 100%; height: 100%; background: var(--boss-blue); transition: width 0.2s ease-out; }
+
+        /* MERMİ TASARIMLARI (ARTAN GÜÇ) */
+        .bullet { position: absolute; z-index: 40; border-radius: 50px; pointer-events: none; }
+        .bullet-v1 { width: 5px; height: 15px; background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+        .bullet-v2 { width: 12px; height: 12px; background: var(--efe-color); box-shadow: 0 0 15px var(--efe-color), 0 0 5px #fff; }
+        .bullet-v3 { width: 8px; height: 25px; background: var(--gizem-color); box-shadow: 0 0 20px var(--gizem-color); border: 1px solid #fff; }
+        .bullet-v4 { width: 15px; height: 35px; background: var(--fire-gold); box-shadow: 0 0 25px var(--fire-gold), 0 0 10px #ff0000; }
+
+        /* PATLAMA */
+        .explosion-fx { position: absolute; background: url('https://i.ibb.co/r25TNmqs/HE-F-G-r-nt-s.avif') no-repeat center; background-size: contain; z-index: 60; pointer-events: none; animation: burst 0.4s ease-out forwards; }
+        @keyframes burst { 0% { transform: scale(0.2); opacity: 1; } 100% { transform: scale(var(--exp-scale, 1.5)); opacity: 0; } }
+
+        #motivation-text { position: absolute; top: 20%; width: 100%; text-align: center; color: var(--gizem-color); font-size: 24px; font-weight: 900; text-shadow: 0 0 20px var(--gizem-color); display: none; z-index: 200; }
+
+        /* OYUN SONU EKRANI */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        #overlay h2 { color: #fff; font-size: 24px; margin-bottom: 5px; font-weight: 400; }
+        #overlay h1 { color: var(--gizem-color); font-size: 38px; margin-bottom: 20px; text-shadow: 0 0 15px var(--gizem-color); font-weight: 900; }
+        #overlay button { padding: 15px 40px; background: var(--neon-green); border: none; border-radius: 50px; font-weight: 900; font-size: 18px; cursor: pointer; color: #000; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="motivation-text">GİZEM, ŞİMDİ ONLARI BİTİR!</div>
+        <div class="ui-panel">
+            <div class="stat-box">SKOR: <span id="scoreVal">0</span> <span id="phase-indicator">| AŞAMA 1</span></div>
+            <div class="stat-box">CAN: <span id="healthVal">100</span></div>
+        </div>
+        <div id="overlay">
+            <h2 id="final-msg">TAMAM ŞİMDİ SG</h2>
+            <h1 id="overlay-title">OYUN BİTTİ</h1>
+            <button onclick="resetGame()">TEKRAR BAŞLA</button>
+        </div>
+        <div id="player"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreVal = document.getElementById('scoreVal');
+        const phaseIndicator = document.getElementById('phase-indicator');
+        const overlay = document.getElementById('overlay');
+        const motivText = document.getElementById('motivation-text');
+
+        let score, isGameOver, isFiring, enemies, currentPhase, bossActive;
+        let lastFireTime = 0, playerX, playerY;
+        
+        function init() {
+            score = 0; isGameOver = false; enemies = []; currentPhase = 1; bossActive = false;
+            scoreVal.innerText = score; phaseIndicator.innerText = "| AŞAMA 1";
+            overlay.style.display = 'none';
+            playerX = window.innerWidth / 2; playerY = window.innerHeight * 0.85;
+            updatePlayerPos(); spawnWave();
+        }
+
+        function spawnWave() {
+            if(isGameOver || bossActive) return;
+            for(let i=1; i<=5; i++) createEnemy((window.innerWidth/6) * i, -100);
+        }
+
+        function createEnemy(x, y, isBoss = false) {
+            const wrapper = document.createElement('div');
+            let hp, w, h;
+            if (isBoss) {
+                wrapper.className = 'boss-container';
+                wrapper.innerHTML = `<div class="boss-hp-bar-bg"><div class="boss-hp-bar-fill" id="boss-hp-fill"></div></div><div class="boss"></div>`;
+                hp = 6000; w = 120; h = 140; 
+            } else {
+                wrapper.className = 'enemy'; hp = 40; w = 45; h = 45;
+            }
+            wrapper.style.left = (x - w/2) + 'px'; wrapper.style.top = y + 'px';
+            container.appendChild(wrapper);
+            enemies.push({ el: wrapper, x: x - w/2, y, hp, maxHp: hp, isBoss, w, h, dir: 1 });
+        }
+
+        function update(time) {
+            if(isGameOver) return;
+
+            if (score >= 5000 && !bossActive) {
+                currentPhase = 4; bossActive = true;
+                phaseIndicator.innerText = "| BOSS SAVAŞI";
+                phaseIndicator.style.color = "var(--fire-gold)";
+                enemies.forEach(en => en.el.remove()); enemies = [];
+                createEnemy(window.innerWidth / 2, 60, true);
+            } else if (score >= 3000 && currentPhase < 3) {
+                currentPhase = 3; phaseIndicator.innerText = "| GİZEM MODU";
+                phaseIndicator.style.color = "var(--gizem-color)";
+            } else if (score >= 1000 && currentPhase < 2) {
+                currentPhase = 2; phaseIndicator.innerText = "| EFE MODU";
+                phaseIndicator.style.color = "var(--efe-color)";
+            }
+
+            enemies.forEach((en, index) => {
+                if(en.isBoss) {
+                    en.x += 2.5 * en.dir;
+                    if(en.x > window.innerWidth - en.w || en.x < 0) en.dir *= -1;
+                    en.el.style.left = en.x + 'px';
+                } else {
+                    en.y += (2 + currentPhase * 0.5);
+                    en.el.style.top = en.y + 'px';
+                    if(en.y > window.innerHeight) { en.el.remove(); enemies.splice(index, 1); }
+                }
+            });
+
+            if(enemies.length === 0 && !bossActive) spawnWave();
+
+            let fireDelay = (currentPhase === 4) ? 120 : (currentPhase === 3 ? 160 : 220); 
+            if(isFiring && (time - lastFireTime > fireDelay)) {
+                shoot();
+                lastFireTime = time;
+            }
+            requestAnimationFrame(update);
+        }
+
+        function shoot() {
+            createBullet(playerX, playerY - 40, currentPhase);
+            if(currentPhase >= 3) { 
+                createBullet(playerX - 35, playerY - 10, currentPhase);
+                createBullet(playerX + 35, playerY - 10, currentPhase);
+            }
+        }
+
+        function createBullet(x, y, phase) {
+            const b = document.createElement('div');
+            b.className = `bullet bullet-v${phase}`;
+            let damage = phase * 35; 
+            let bulletWidth = (phase === 4) ? 15 : (phase === 2 ? 12 : 6);
+            b.style.left = (x - bulletWidth/2) + 'px'; 
+            b.style.top = y + 'px';
+            container.appendChild(b);
+
+            let by = y;
+            function move() {
+                if(isGameOver || !b.parentNode) return;
+                by -= 14; b.style.top = by + 'px';
+
+                for (let i = 0; i < enemies.length; i++) {
+                    let en = enemies[i];
+                    if(by < en.y + en.h && by > en.y && x > en.x && x < en.x + en.w) {
+                        en.hp -= damage;
+                        if (en.isBoss) {
+                            const f = document.getElementById('boss-hp-fill');
+                            f.style.width = (en.hp / en.maxHp * 100) + '%';
+                            if(en.hp < 2000) motivText.style.display = 'block';
+                        }
+                        b.remove(); 
+                        if(en.hp <= 0) {
+                            if(en.isBoss) {
+                                isGameOver = true; en.el.remove();
+                                triggerExplosion(en.x + en.w/2, en.y + en.h/2, 6);
+                                setTimeout(() => { 
+                                    document.getElementById('overlay-title').innerText = "GÖREV TAMAMLANDI!"; 
+                                    overlay.style.display = 'flex'; 
+                                }, 1000);
+                            } else {
+                                triggerExplosion(en.x + en.w/2, en.y + en.h/2, 1.5);
+                                score += 100; scoreVal.innerText = score;
+                                en.el.remove(); enemies.splice(i, 1);
+                            }
+                        }
+                        return;
+                    }
+                }
+                if(by < -50) b.remove(); else requestAnimationFrame(move);
+            }
+            requestAnimationFrame(move);
+        }
+
+        function triggerExplosion(x, y, scale) {
+            const fx = document.createElement('div');
+            fx.className = 'explosion-fx';
+            fx.style.setProperty('--exp-scale', scale);
+            fx.style.left = (x - 40) + 'px'; fx.style.top = (y - 40) + 'px';
+            fx.style.width = '80px'; fx.style.height = '80px';
+            container.appendChild(fx);
+            setTimeout(() => fx.remove(), 400);
+        }
+
+        function updatePlayerPos() { 
+            player.style.left = (playerX - 42.5) + 'px'; 
+            player.style.top = (playerY - 42.5) + 'px'; 
+        }
+        
+        container.addEventListener('touchstart', (e) => { 
+            if(isGameOver) return; 
+            isFiring = true; 
+            playerX = e.touches[0].clientX; playerY = e.touches[0].clientY; 
+            updatePlayerPos(); 
+        });
+        
+        container.addEventListener('touchmove', (e) => { 
+            if(isGameOver) return; 
+            e.preventDefault(); 
+            playerX = e.touches[0].clientX; playerY = e.touches[0].clientY; 
+            updatePlayerPos(); 
+        }, { passive: false });
+        
+        window.addEventListener('touchend', () => isFiring = false);
+
+        function resetGame() { location.reload(); }
+
+        init(); 
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
