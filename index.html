@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Starship Strike - Güçlenen Ateş Hattı</title>
+    <title>Starship Strike - Yeni Düşman Filosu</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
@@ -30,21 +30,28 @@
             transition: transform 0.1s ease-out;
         }
 
-        /* DÜŞMANLAR */
-        .enemy { position: absolute; width: 45px; height: 45px; background: url('https://i.ibb.co/M570SNVj/HE-F-G-r-nt-s.avif') no-repeat center; background-size: contain; z-index: 30; transform: rotate(180deg); }
+        /* YENİ DÜŞMAN GEMİLERİ */
+        .enemy { 
+            position: absolute; width: 50px; height: 50px; 
+            background: url('https://i.ibb.co/4nGJ3MLF/HE-F-G-r-nt-s.avif') no-repeat center; 
+            background-size: contain; z-index: 30; 
+            transform: rotate(180deg); 
+            filter: drop-shadow(0 0 8px #ff4444);
+        }
         
+        /* BOSS GEMİSİ */
         .boss-container { position: absolute; z-index: 30; display: flex; flex-direction: column; align-items: center; }
         .boss {
-            width: 120px; height: 120px;
-            background: url('https://i.ibb.co/M570SNVj/HE-F-G-r-nt-s.avif') no-repeat center;
+            width: 140px; height: 140px;
+            background: url('https://i.ibb.co/4nGJ3MLF/HE-F-G-r-nt-s.avif') no-repeat center;
             background-size: contain; transform: rotate(180deg);
-            filter: hue-rotate(200deg) brightness(1.3) drop-shadow(0 0 40px var(--boss-blue));
+            filter: hue-rotate(180deg) brightness(1.5) drop-shadow(0 0 45px var(--boss-blue));
         }
 
-        .boss-hp-bar-bg { width: 160px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 10px; border: 1px solid var(--boss-blue); overflow: hidden; }
+        .boss-hp-bar-bg { width: 180px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 10px; border: 1px solid var(--boss-blue); overflow: hidden; }
         .boss-hp-bar-fill { width: 100%; height: 100%; background: var(--boss-blue); transition: width 0.2s ease-out; }
 
-        /* MERMİ TASARIMLARI (ARTAN GÜÇ) */
+        /* MERMİ TASARIMLARI */
         .bullet { position: absolute; z-index: 40; border-radius: 50px; pointer-events: none; }
         .bullet-v1 { width: 5px; height: 15px; background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
         .bullet-v2 { width: 12px; height: 12px; background: var(--efe-color); box-shadow: 0 0 15px var(--efe-color), 0 0 5px #fff; }
@@ -58,10 +65,10 @@
         #motivation-text { position: absolute; top: 20%; width: 100%; text-align: center; color: var(--gizem-color); font-size: 24px; font-weight: 900; text-shadow: 0 0 20px var(--gizem-color); display: none; z-index: 200; }
 
         /* OYUN SONU EKRANI */
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        #overlay h2 { color: #fff; font-size: 24px; margin-bottom: 5px; font-weight: 400; }
-        #overlay h1 { color: var(--gizem-color); font-size: 38px; margin-bottom: 20px; text-shadow: 0 0 15px var(--gizem-color); font-weight: 900; }
-        #overlay button { padding: 15px 40px; background: var(--neon-green); border: none; border-radius: 50px; font-weight: 900; font-size: 18px; cursor: pointer; color: #000; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        #overlay h2 { color: #fff; font-size: 22px; margin-bottom: 5px; font-weight: 400; letter-spacing: 2px; }
+        #overlay h1 { color: var(--gizem-color); font-size: 38px; margin-bottom: 30px; text-shadow: 0 0 20px var(--gizem-color); font-weight: 900; }
+        #overlay button { padding: 18px 50px; background: var(--neon-green); border: none; border-radius: 50px; font-weight: 900; font-size: 20px; cursor: pointer; color: #000; box-shadow: 0 0 20px var(--neon-green); }
     </style>
 </head>
 <body>
@@ -110,9 +117,9 @@
             if (isBoss) {
                 wrapper.className = 'boss-container';
                 wrapper.innerHTML = `<div class="boss-hp-bar-bg"><div class="boss-hp-bar-fill" id="boss-hp-fill"></div></div><div class="boss"></div>`;
-                hp = 6000; w = 120; h = 140; 
+                hp = 6000; w = 140; h = 160; 
             } else {
-                wrapper.className = 'enemy'; hp = 40; w = 45; h = 45;
+                wrapper.className = 'enemy'; hp = 40; w = 50; h = 50;
             }
             wrapper.style.left = (x - w/2) + 'px'; wrapper.style.top = y + 'px';
             container.appendChild(wrapper);
@@ -138,11 +145,11 @@
 
             enemies.forEach((en, index) => {
                 if(en.isBoss) {
-                    en.x += 2.5 * en.dir;
+                    en.x += 2.8 * en.dir;
                     if(en.x > window.innerWidth - en.w || en.x < 0) en.dir *= -1;
                     en.el.style.left = en.x + 'px';
                 } else {
-                    en.y += (2 + currentPhase * 0.5);
+                    en.y += (2.2 + currentPhase * 0.4);
                     en.el.style.top = en.y + 'px';
                     if(en.y > window.innerHeight) { en.el.remove(); enemies.splice(index, 1); }
                 }
@@ -178,7 +185,7 @@
             let by = y;
             function move() {
                 if(isGameOver || !b.parentNode) return;
-                by -= 14; b.style.top = by + 'px';
+                by -= 15; b.style.top = by + 'px';
 
                 for (let i = 0; i < enemies.length; i++) {
                     let en = enemies[i];
@@ -187,19 +194,19 @@
                         if (en.isBoss) {
                             const f = document.getElementById('boss-hp-fill');
                             f.style.width = (en.hp / en.maxHp * 100) + '%';
-                            if(en.hp < 2000) motivText.style.display = 'block';
+                            if(en.hp < 2500) motivText.style.display = 'block';
                         }
                         b.remove(); 
                         if(en.hp <= 0) {
                             if(en.isBoss) {
                                 isGameOver = true; en.el.remove();
-                                triggerExplosion(en.x + en.w/2, en.y + en.h/2, 6);
+                                triggerExplosion(en.x + en.w/2, en.y + en.h/2, 7);
                                 setTimeout(() => { 
-                                    document.getElementById('overlay-title').innerText = "GÖREV TAMAMLANDI!"; 
+                                    document.getElementById('overlay-title').innerText = "EVREN KURTARILDI!"; 
                                     overlay.style.display = 'flex'; 
                                 }, 1000);
                             } else {
-                                triggerExplosion(en.x + en.w/2, en.y + en.h/2, 1.5);
+                                triggerExplosion(en.x + en.w/2, en.y + en.h/2, 1.8);
                                 score += 100; scoreVal.innerText = score;
                                 en.el.remove(); enemies.splice(i, 1);
                             }
